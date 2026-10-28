@@ -1,4 +1,4 @@
-/* Hamzzi Sonata v1.0 — original solo pursuit/deduction rules.
+/* Hamzzi Sonata v2.0 — original solo pursuit/deduction rules.
  * The deterministic action log is the save format of record.
  * This file contains no network, DOM, timer, or ambient random dependencies.
  */
@@ -20,7 +20,7 @@
     {id:'mang',name:'망해',x:575,y:282},
     {id:'gong',name:'공명14',x:27,y:369},
     {id:'soft',name:'부드러운 저승사자',x:301,y:369},
-    {id:'irung',name:'이몽',x:575,y:369},
+    {id:'irung',name:'이뭉',x:575,y:369},
     {id:'quiet',name:'조용한닝겐',quiet:true}
   ];
   const TRAITS = [
@@ -52,11 +52,19 @@
     return distances;
   });
   const DIFFICULTIES = {easy:{name:'산책 탐정',nights:18},normal:{name:'달빛 탐정',nights:14},hard:{name:'명탐정',nights:11}};
+  const PROTAGONIST_ID = 'irung';
+  const SUSPECTS = CANDIDATES.filter(candidate=>candidate.id!==PROTAGONIST_ID);
   const IDS = new Set(CANDIDATES.map(candidate=>candidate.id));
 
   function bits(number) { let count=0; for(let n=number;n;n>>>=1)count+=n&1; return count; }
   function copy(value) { return JSON.parse(JSON.stringify(value)); }
   function fail(message) { throw new Error(message); }
+  function validVersion(version) { return version===1||version===2; }
+  function getSuspects(stateOrVersion=2) {
+    const version=stateOrVersion&&typeof stateOrVersion==='object'?stateOrVersion.v:stateOrVersion;
+    if(!validVersion(version))fail('사건 규칙 버전이 올바르지 않아요.');
+    return version===1?CANDIDATES:SUSPECTS;
+  }
   function seedValue(seed) {
     if(typeof seed==='number'){
       if(!Number.isSafeInteger(seed))fail('사건 번호가 올바르지 않아요.');
@@ -89,7 +97,7 @@
     return bits(clue.mask)-bits((pattern^clue.pattern)&clue.mask)===clue.count;
   }
   function consistentIds(state) {
-    return CANDIDATES.filter(candidate=>state.clues.every(clue=>matchClue(state.traitsById[candidate.id],clue))).map(candidate=>candidate.id);
+    return getSuspects(state).filter(candidate=>state.clues.every(clue=>matchClue(state.traitsById[candidate.id],clue))).map(candidate=>candidate.id);
   }
   function cluePool(targetPattern) {
     const clues=[];
@@ -109,7 +117,8 @@
   }
   function makeClues(state) {
     const target=state.traitsById[state.identity];
-    const pool=cluePool(target);let remaining=Array.from({length:16},(_,index)=>index);const selected=[];
+    // Preserve the v1 generator's ordering and RNG draws for saved cases.
+    const pool=cluePool(target);let remaining=state.v===1?Array.from({length:16},(_,index)=>index):getSuspects(state).map(candidate=>state.traitsById[candidate.id]);const selected=[];
     for(let step=0;remaining.length>1&&step<4;step++){
       const options=pool.map(clue=>({clue,remaining:remaining.filter(pattern=>matchClue(pattern,clue))})).filter(option=>option.remaining.length>0&&option.remaining.length<remaining.length);
       if(!options.length)fail('이 사건의 단서를 구성할 수 없어요.');
@@ -149,13 +158,16 @@
     state.hintPositions=[];
     if(!possiblePositions(state).includes(state.targetPos))fail('추적 기록이 실제 위치와 맞지 않아요.');
   }
-  function create(seed,difficulty='normal') {
+  // Old cached clients call create/replay without a version. Keep those
+  // calls on v1; the current UI explicitly requests v2 for a new case.
+  function create(seed,difficulty='normal',version=1) {
     if(!Object.prototype.hasOwnProperty.call(DIFFICULTIES,difficulty))fail('난이도가 올바르지 않아요.');
+    if(!validVersion(version))fail('사건 규칙 버전이 올바르지 않아요.');
     const normalized=seedValue(seed);
-    const state={v:1,seed:normalized,rng:normalized,difficulty,maxNights:DIFFICULTIES[difficulty].nights,player:0,targetPos:0,identity:'',traitsById:{},clueDeck:[],clues:[],night:1,ap:2,status:'playing',actions:[],log:[],trace:[],tracking:[],hints:0,hintPositions:[],lastEvent:{type:'start'},spent:0,searches:0,catches:0,misses:0,fledThisNight:false,score:null};
+    const state={v:version,seed:normalized,rng:normalized,difficulty,maxNights:DIFFICULTIES[difficulty].nights,player:0,targetPos:0,identity:'',traitsById:{},clueDeck:[],clues:[],night:1,ap:2,status:'playing',actions:[],log:[],trace:[],tracking:[],hints:0,hintPositions:[],lastEvent:{type:'start'},spent:0,searches:0,catches:0,misses:0,fledThisNight:false,score:null};
     const patterns=shuffle(state,Array.from({length:16},(_,index)=>index));
     CANDIDATES.forEach((candidate,index)=>{state.traitsById[candidate.id]=patterns[index];});
-    state.identity=pick(state,CANDIDATES).id;
+    state.identity=pick(state,getSuspects(state)).id;
     state.targetPos=pick(state,NODES.filter(node=>node.id!==0)).id;state.mark=NODES[state.targetPos].mark;
     state.tracking=NODES.filter(node=>node.id!==0&&node.mark===state.mark).map(node=>node.id);
     state.trace=[{turn:0,night:1,mark:state.mark,steps:0}];
@@ -190,8 +202,9 @@
     return Math.max(100,800+(state.maxNights*2-state.spent)*15-state.hints*75-state.misses*10);
   }
   function act(previous,rawAction) {
-    if(!previous||previous.v!==1||!Array.isArray(previous.actions)||!Array.isArray(previous.clues))fail('진행 중인 사건이 올바르지 않아요.');
+    if(!previous||!validVersion(previous.v)||!Array.isArray(previous.actions)||!Array.isArray(previous.clues))fail('진행 중인 사건이 올바르지 않아요.');
     const action=cleanAction(rawAction);
+    if(action.type==='accuse'&&!getSuspects(previous).some(candidate=>candidate.id===action.id))fail('탐정은 지목할 후보가 아니에요.');
     if(previous.status==='won'||previous.status==='lost')fail('이미 끝난 사건이에요.');
     if(previous.status==='last-chance'&&action.type!=='accuse')fail('마지막 정체 추리만 할 수 있어요.');
     if(previous.status!=='playing'&&previous.status!=='last-chance')fail('사건 상태가 올바르지 않아요.');
@@ -230,19 +243,19 @@
     }
     finishNight(state,1);return state;
   }
-  function replay(seed,difficulty,actions) {
+  function replay(seed,difficulty,actions,version=1) {
     if(!Array.isArray(actions)||actions.length>128)fail('저장된 행동 기록이 올바르지 않아요.');
-    let state=create(seed,difficulty);
+    let state=create(seed,difficulty,version);
     for(const action of actions)state=act(state,action);
     return state;
   }
   function restore(saved) {
-    if(!saved||typeof saved!=='object'||Array.isArray(saved)||saved.v!==1)fail('저장된 사건 형식이 올바르지 않아요.');
+    if(!saved||typeof saved!=='object'||Array.isArray(saved)||!validVersion(saved.v))fail('저장된 사건 형식이 올바르지 않아요.');
     // Derived fields are discarded. Only a valid deterministic action log may
     // reconstruct positions, clues, outcome, and score.
-    return replay(saved.seed,saved.difficulty,saved.actions);
+    return replay(saved.seed,saved.difficulty,saved.actions,saved.v);
   }
-  const API={VERSION:1,CANDIDATES,TRAITS,MARKS,NODES,EDGES,ADJ,DIST,DIFFICULTIES,create,act,replay,restore,matchClue,consistentIds,possiblePositions,traitValues,score};
+  const API={VERSION:2,PROTAGONIST_ID,CANDIDATES,TRAITS,MARKS,NODES,EDGES,ADJ,DIST,DIFFICULTIES,getSuspects,create,act,replay,restore,matchClue,consistentIds,possiblePositions,traitValues,score};
   root.SonataEngine=API;
   if(typeof module!=='undefined'&&module.exports)module.exports=API;
 })(typeof globalThis!=='undefined'?globalThis:this);
