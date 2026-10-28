@@ -1,0 +1,5 @@
+output/
+.playwright-cli/
+verification.json
+*.zip
+pages-request.json
