@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#101411">
+  <meta name="description" content="여섯 햄찌 중 누가 귀신을 불렀을까? 미로를 탐색하고 소환 흔적을 모아 탈출하는 할로윈 공포 추리 게임.">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'self'">
+  <title>문을 연 햄찌 · 할로윈 공포 추리</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Ctext y='40' font-size='40'%3E🎃%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css?v=1">
+  <script src="engine.js?v=1" defer></script>
+  <script src="renderer.js?v=1" defer></script>
+  <script src="audio.js?v=1" defer></script>
+  <script src="game.js?v=1" defer></script>
+</head>
+<body>
+  <div id="home" class="home">
+    <header class="masthead"><a class="wordmark" href="../">HAMZZI <span>AFTER DARK</span></a><span class="edition">10 / 31 <i></i> HALLOWEEN NIGHT</span></header>
+    <main class="home-main">
+      <div class="home-scene" aria-hidden="true"><img id="title-art" src="assets/title-scene.png" alt="" fetchpriority="high"><div class="scene-shade"></div></div>
+      <section class="invitation" aria-labelledby="game-title">
+        <p class="eyebrow"><span></span> 초대장은 여섯 장. 문을 연 건 한 명.</p>
+        <h1 id="game-title">문을 연<br><em>햄찌</em><span class="title-dot">.</span></h1>
+        <p class="home-copy">파티는 끝났는데, 누군가는 아직 여기 있다.<br>여섯 친구 중 누가 <strong>그것</strong>을 불렀는지 찾아라.</p>
+        <div class="case-stats"><span>1인 공포 추리</span><b>·</b><span>미로 탐색 & 추격</span><b>·</b><span>매번 다른 범인</span></div>
+        <fieldset class="difficulty"><legend>어떤 밤으로 들어갈까?</legend><label><input type="radio" name="difficulty" value="normal" checked><span>공포의 밤<small>추격과 추리를 함께</small></span></label><label><input type="radio" name="difficulty" value="story"><span>탐정의 밤<small>느린 귀신 · 넉넉한 체력</small></span></label></fieldset>
+        <div class="home-actions"><button id="start" class="btn-primary" disabled>에셋을 불러오는 중…</button><button id="resume" class="btn-secondary" hidden disabled>이어서 수사하기 <span>↗</span></button></div>
+        <div class="home-options"><label class="check"><input id="home-sound" type="checkbox" checked><span>소리 켜기</span></label><label class="check"><input id="home-motion" type="checkbox"><span>놀람 연출 줄이기</span></label><button id="help-home" class="text-btn">조작 방법</button></div>
+        <p class="asset-status" id="asset-status" role="status">램프에 불을 붙이는 중입니다.</p>
+      </section>
+      <p class="scene-caption"><span>THE DOOR WAS OPENED<br>FROM THE INSIDE.</span><small>안에서 문을 연 자가 있다.</small></p>
+    </main>
+    <footer class="cast-footer"><div class="cast-heading"><span class="eyebrow">그날 밤의 참석자</span><small>이뭉 탐정과 여섯 용의자</small></div><div id="home-cast" class="home-cast"></div><div class="home-footer-links"><a href="../sonata/">햄찌 소나타 ↗</a><button id="reset-home" class="text-btn">진행 기록 초기화</button></div></footer>
+  </div>
+
+  <main id="stage" class="stage" hidden aria-label="할로윈 미로 게임">
+    <canvas id="world" tabindex="0" aria-label="미로. WASD 또는 방향키로 이동, E 상호작용, Shift 달리기, Space 숨기, F 손전등, J 수첩, M 지도, Escape 일시정지"></canvas>
+    <div class="screen-grain" aria-hidden="true"></div>
+    <header class="hud">
+      <div class="hud-status"><span class="hud-name">이뭉 <small>DETECTIVE</small></span><span id="health" class="health" aria-label="남은 기회 2회">♥ ♥</span><div class="meter-row"><span>달리기</span><meter id="stamina" min="0" max="100" value="100" aria-label="달리기 체력"></meter></div><div class="meter-row"><span>손전등</span><meter id="battery" min="0" max="100" value="100" aria-label="손전등 배터리"></meter></div></div>
+      <div class="hud-mission"><span class="eyebrow">소환자를 찾아라</span><strong id="mission">소환 흔적 <b>0</b> / 3</strong><small id="mission-sub">흔적과 여섯 명의 기록을 대조하세요.</small></div>
+      <nav class="hud-nav" aria-label="게임 메뉴"><button id="journal" class="icon-btn" aria-label="수사 수첩 열기 J"><span>▤</span><small>수첩 <kbd>J</kbd></small></button><button id="map" class="icon-btn" aria-label="지도 표시 M" aria-pressed="false"><span>⌗</span><small>지도 <kbd>M</kbd></small></button><button id="pause" class="icon-btn" aria-label="일시정지 Escape"><span>Ⅱ</span><small>메뉴</small></button></nav>
+    </header>
+    <div id="threat" class="threat" hidden><i></i><span>발소리가 가까워진다</span></div>
+    <div id="map-legend" class="map-legend" hidden>밝은 길은 지나온 곳입니다. <span>● 나　◆ 흔적　○ 햄찌　▣ 출입문</span></div>
+    <div class="game-bottom"><div class="context"><span id="location-label" class="eyebrow">문을 닫기 전까지, 뒤를 보지 마.</span><p id="context-text">바닥의 소환 흔적을 찾으세요.</p><button id="interact" class="btn-context" hidden><kbd>E</kbd><span>살펴보기</span></button></div><div class="desktop-controls"><span><kbd>W A S D</kbd> 이동</span><span><kbd>Shift</kbd> 달리기</span><span><kbd>Space</kbd> 숨기</span><button id="light" aria-label="손전등 전환 F" aria-pressed="true"><kbd>F</kbd> 손전등</button></div></div>
+    <div class="touch-controls"><div class="dpad" aria-label="이동 버튼"><button data-dir="up" class="up" aria-label="위로 이동">▲</button><button data-dir="left" class="left" aria-label="왼쪽으로 이동">◀</button><span class="dpad-center" aria-hidden="true">✥</span><button data-dir="right" class="right" aria-label="오른쪽으로 이동">▶</button><button data-dir="down" class="down" aria-label="아래로 이동">▼</button></div><div class="touch-actions"><button id="touch-run" aria-label="누르는 동안 달리기">달리기</button><button id="touch-hide">숨기</button><button id="touch-interact">조사</button><button id="touch-light" aria-pressed="true">빛</button></div></div>
+    <div id="scare-label" class="scare-label" hidden aria-hidden="true">눈을 마주쳤다.</div>
+  </main>
+
+  <dialog id="modal" aria-labelledby="modal-title"><div id="modal-content"></div></dialog>
+  <div id="toast" class="toast" role="status" hidden></div>
+  <p id="storage-warning" class="storage-warning" role="status" hidden></p>
+  <div id="live" class="sr-only" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript">이 게임을 실행하려면 JavaScript를 켜 주세요.</p></noscript>
+</body>
+</html>

@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "generatedDate": "2026-10-31",
+  "generator": "built-in image_gen.imagegen",
+  "ghost": {
+    "file": "ghost-atlas.png",
+    "width": 1254,
+    "height": 1254,
+    "columns": 4,
+    "rows": 4,
+    "frames": 16,
+    "alpha": true,
+    "rowModes": [
+      "idle",
+      "walk",
+      "chase",
+      "lunge"
+    ]
+  },
+  "scare": {
+    "file": "scare-atlas.png",
+    "width": 1254,
+    "height": 1254,
+    "columns": 2,
+    "rows": 2,
+    "frames": 4,
+    "alpha": false
+  },
+  "npc": {
+    "file": "npc-atlas.png",
+    "width": 1774,
+    "height": 887,
+    "columns": 4,
+    "rows": 2,
+    "alpha": true,
+    "ids": [
+      "dipijin",
+      "reaper",
+      "ddon",
+      "mang",
+      "gong",
+      "cookie",
+      "imoong",
+      null
+    ]
+  },
+  "portrait": {
+    "file": "ghost-portrait.png",
+    "width": 1024,
+    "height": 1536,
+    "alpha": true
+  },
+  "title": {
+    "file": "title-scene.png",
+    "width": 1672,
+    "height": 941,
+    "alpha": false
+  }
+}
