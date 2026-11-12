@@ -178,7 +178,7 @@
       const c = this.ctx, vx = actor.vx || 0, vy = actor.vy || 0;
       const speed = Math.hypot(vx, vy), running = speed > 5;
       const phase = time * (player ? 19 : 24) + (Number(actor.id) || actor.profileIndex || 0) * .7;
-      const bob = !reduced && running ? Math.abs(Math.sin(phase)) * -5 : 0;
+      const bob = !reduced && running ? Math.abs(Math.sin(phase)) * -3 : 0;
       const ux = speed ? vx / speed : 0, uy = speed ? vy / speed : 0;
       if (!player && running && !reduced) {
         for (let i = 1; i <= 3; i++) {
@@ -190,17 +190,17 @@
         }
       }
       c.save(); c.translate(actor.x, actor.y);
-      const shadow = c.createRadialGradient(0, 3, 3, 0, 3, player ? 39 : 32);
+      const shadow = c.createRadialGradient(0, 3, 3, 0, 3, player ? 28 : 23);
       shadow.addColorStop(0, '#193c3159'); shadow.addColorStop(1, '#193c3100');
-      c.scale(1, .42); c.fillStyle = shadow; circle(c, 0, 6, player ? 42 : 37); c.fill(); c.restore();
+      c.scale(1, .42); c.fillStyle = shadow; circle(c, 0, 6, player ? 30 : 26); c.fill(); c.restore();
       if (player) {
-        circle(c, actor.x, actor.y + 2, 31); c.fillStyle = '#faf4d769'; c.fill();
+        circle(c, actor.x, actor.y + 2, 23); c.fillStyle = '#faf4d769'; c.fill();
         c.strokeStyle = '#325e4855'; c.lineWidth = 1.5; c.stroke();
       }
       const facing = Number.isFinite(actor.facing) ? actor.facing : Math.atan2(vy, vx);
       const flip = running ? vx < -3 : player && Math.cos(facing) < -.1;
-      const tilt = !reduced && running ? clamp(vx / 310, -1, 1) * .075 + Math.sin(phase) * .025 : 0;
-      this._atlas(player ? 6 : actor.profileIndex || 0, actor.x, actor.y, player ? 104 : 92, flip, tilt, bob);
+      const tilt = !reduced && running ? clamp(vx / 360, -1, 1) * .075 + Math.sin(phase) * .025 : 0;
+      this._atlas(player ? 6 : actor.profileIndex || 0, actor.x, actor.y, player ? 72 : 64, flip, tilt, bob);
       // These floor markers are the actual collision radii, not decoration on the fur.
       circle(c, actor.x, actor.y, actor.r || (player ? 10 : 19));
       c.fillStyle = player ? '#173f37dd' : '#9d4f2e9c'; c.fill();

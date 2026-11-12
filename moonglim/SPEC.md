@@ -30,11 +30,15 @@ Required state: `version,seed,status` ('playing','over'), `elapsed,player:{x,y,r
 Enemy kind is one of ENEMIES ids; profileIndex always numeric0..5.
 Hit `{name,kind,x,y,time}` also available in event `{type:'hit',...hit}`.
 Events `warning`, `spawn`, `near`, `stage`, `hit` may be used for particles/audio.
-Warn at arena rim >=0.5s before rush. Lock aim at telegraph, no homing. Seeded patterns
+Warn at arena rim >=0.4s before rush. Lock aim at telegraph, no homing. Seeded patterns
 grow denser/faster with elapsed time. Incoming hamsters always originate outside arena,
 cross the arena in straight lines, disappear after leaving. Keep bounded object counts.
 Avoid impossible random spawning on player. Collision uses visible small ground circles,
 not entire illustrated fur silhouette. First contact→over; further step must no-op.
+
+Version 2: player speed360, simulation240Hz, physical keycode controls, sprite sizes
+player72/enemy64 (previous104/92). Collision radii remain player10/enemy19 and are drawn.
+`difficultyFor(seconds)` exposes actual speed/interval/count/lead; stages at0/10/20/35/50/75/105.
 
 ## Renderer API
 

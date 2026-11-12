@@ -3,12 +3,17 @@
   const E=window.MoonglimEngine;
   const $=id=>document.getElementById(id);
   const KEY='hamzzi-moonglim-v1';
+  const PHYSICAL_KEYS={KeyW:'w',KeyA:'a',KeyS:'s',KeyD:'d',ArrowUp:'arrowup',ArrowDown:'arrowdown',ArrowLeft:'arrowleft',ArrowRight:'arrowright',KeyP:'p',KeyR:'r',Space:' ',Escape:'escape',Enter:'enter',Tab:'tab'};
+  const movementKeys=new Set(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright']);
+  const eventKey=ev=>PHYSICAL_KEYS[ev.code]||ev.key.toLowerCase();
   const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const format=n=>(Math.floor((Math.max(0,n)+1e-9)*100)/100).toFixed(2);
   const fresh=()=>({version:1,best:0,last:0,attempts:0,sound:true,reduceMotion:matchMedia('(prefers-reduced-motion: reduce)').matches});
   let records=fresh(),mode='ready',state=null,renderer,audio,ready=false;
   let keys=new Set(),dirs=new Set(),pointer=null,lastFrame=0,lastHud=0,overAt=0,readyAt=0;
   let warned=false,toastAt=0;
+  let lastControlsMode=null;
+  function text(id,value){const el=$(id);if(el.textContent!==value)el.textContent=value;}
   function notice(text,error=false){$('notice').textContent=text;$('notice').classList.toggle('error',error);}
   function persist(){try{localStorage.setItem(KEY,JSON.stringify(records));return true;}catch(_){notice('기록을 저장하지 못했어요. 이 창에서는 계속 기록됩니다.',true);return false;}}
   function load(){
@@ -31,9 +36,10 @@
     pointer=null;document.querySelectorAll('.dpad .active').forEach(el=>el.classList.remove('active'));
   }
   function hud(){
-    $('clock').textContent=format(state?.elapsed||0);$('near-count').textContent=`${state?.nearMisses||0}회`;
-    $('phase').textContent=mode==='ready'?'입장 준비':mode==='paused'?'잠시 숨 고르기':mode==='over'?'수련 종료':E.stageFor(state.elapsed).name;
-    $('time-label').textContent=mode==='over'?'이번 생존 기록':'이번 수련';
+    text('clock',format(state?.elapsed||0));text('near-count',`${state?.nearMisses||0}회`);
+    text('phase',mode==='ready'?'입장 준비':mode==='paused'?'잠시 숨 고르기':mode==='over'?'수련 종료':E.stageFor(state.elapsed).name);
+    if(lastControlsMode===mode)return;lastControlsMode=mode;
+    text('time-label',mode==='over'?'이번 생존 기록':'이번 수련');
     $('pause').disabled=mode==='ready'||mode==='over';$('pause').innerHTML=mode==='paused'?'<span>▶</span> 계속하기 <kbd>P</kbd>':'<span>Ⅱ</span> 일시정지 <kbd>P</kbd>';
     $('reset-record').disabled=mode==='playing'||mode==='paused';$('quick-retry').hidden=mode!=='over';
   }
@@ -82,10 +88,11 @@
   function input(dt){
     let x=Number(keys.has('d')||keys.has('arrowright')||dirs.has('right'))-Number(keys.has('a')||keys.has('arrowleft')||dirs.has('left'));
     let y=Number(keys.has('s')||keys.has('arrowdown')||dirs.has('down'))-Number(keys.has('w')||keys.has('arrowup')||dirs.has('up'));
-    if(!x&&!y&&pointer){const p=renderer.toWorld(pointer.x,pointer.y);const dx=p.x-state.player.x,dy=p.y-state.player.y,d=Math.hypot(dx,dy);if(d>3){const v=Math.min(1,d/(310*Math.max(dt,.001)));x=dx/d*v;y=dy/d*v;}}
+    if(!x&&!y&&pointer){const p=renderer.toWorld(pointer.x,pointer.y);const dx=p.x-state.player.x,dy=p.y-state.player.y,d=Math.hypot(dx,dy);if(d>3){const v=Math.min(1,d/(E.PLAYER_SPEED*Math.max(dt,.001)));x=dx/d*v;y=dy/d*v;}}
     return{x,y};
   }
-  function frame(now){
+  function frame(){
+    const now=performance.now();
     const dt=Math.min(.05,Math.max(0,(now-lastFrame)/1000));lastFrame=now;
     if(ready&&state){
       if(mode==='playing'){
@@ -93,7 +100,7 @@
         for(const ev of events){if(ev.type==='hit'){finish(ev);break;}if(ev.type==='near')audio.play('near');else if(ev.type==='stage'){audio.play('stage');announce(E.stageFor(state.elapsed).name+' 단계에 들어왔습니다.');}else if(ev.type==='warning'&&now-toastAt>420){audio.play('warning');toastAt=now;}}
       }
       renderer.draw(state,{time:now/1000,reduceMotion:records.reduceMotion,mode,hitProgress:mode==='over'?Math.min(1,(now-overAt)/650):0});
-      if(now-lastHud>60){hud();lastHud=now;}
+      if(now-lastHud>32){hud();lastHud=now;}
     }
     requestAnimationFrame(frame);
   }
@@ -116,8 +123,10 @@
   $('confirm').addEventListener('close',()=>$('reset-record').focus({preventScroll:true}));
   document.addEventListener('keydown',ev=>{
     if($('confirm').open)return;
-    const k=ev.key.toLowerCase();
-    if(ev.target.matches('input,select,textarea')&&k!=='p'&&k!=='escape')return;
+    const k=eventKey(ev);
+    const textEntry=ev.target.matches('textarea,select,input:not([type="checkbox"])');
+    if(textEntry&&k!=='p'&&k!=='escape')return;
+    if(ev.target.matches('input[type="checkbox"]')&&!movementKeys.has(k)&&k!=='p'&&k!=='escape')return;
     if(mode==='over'&&k==='tab'){const buttons=[...$('overlay-card').querySelectorAll('button')];if(ev.shiftKey&&document.activeElement===buttons[0]){ev.preventDefault();buttons.at(-1)?.focus();}else if(!ev.shiftKey&&document.activeElement===buttons.at(-1)){ev.preventDefault();buttons[0]?.focus();}return;}
     if((k===' '||k==='enter')&&ev.target.closest('button,a'))return;
     if(['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright',' ','escape','p','r'].includes(k))ev.preventDefault();
@@ -126,7 +135,7 @@
     if(k==='p'||k==='escape'){if(mode==='playing')pause();else if(mode==='paused')resume();else if(mode==='over'&&k==='escape')home();}
     else if((k===' '||k==='r')&&(mode==='ready'||mode==='over'))start();
   });
-  document.addEventListener('keyup',ev=>keys.delete(ev.key.toLowerCase()));
+  document.addEventListener('keyup',ev=>keys.delete(eventKey(ev)));
   const arena=$('arena');
   arena.addEventListener('pointerdown',ev=>{if(mode!=='playing')return;ev.preventDefault();arena.setPointerCapture(ev.pointerId);pointer={id:ev.pointerId,x:ev.clientX,y:ev.clientY};});
   arena.addEventListener('pointermove',ev=>{if(pointer?.id===ev.pointerId){ev.preventDefault();pointer.x=ev.clientX;pointer.y=ev.clientY;}});

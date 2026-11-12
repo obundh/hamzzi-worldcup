@@ -14,6 +14,7 @@ function enemy(id, x, y, vx, vy, kindIndex = 0) {
 }
 
 eq(E.WORLD_SIZE, 1000, 'World size contract');
+eq(E.VERSION,2,'Harder responsive rules version');
 eq(E.ARENA_RADIUS, 430, 'Circular arena contract');
 eq(E.ENEMIES.map(n => n.name), ['디피진','저승사자','똔꾸리','다망해','공명','랫서쿠키'], 'Actual six hamster cast');
 eq(E.ENEMIES.map(n => n.profileIndex), [0,1,2,3,4,5], 'Actual sprite indices');
@@ -23,6 +24,10 @@ assert.throws(() => E.create(NaN)); checks++;
 
 // Movement has one speed in every direction and cannot leave the court.
 {
+  const immediate=quiet(44);E.step(immediate,1/240,{x:1});
+  close(immediate.player.x,501.5,1e-10,'High-refresh keyboard movement begins on the first 240Hz quantum');
+  E.step(immediate,1/240,{x:-1});close(immediate.player.x,500,1e-10,'Direction reverses immediately without acceleration buffering');
+  E.step(immediate,1/240,{});close(immediate.player.x,500,1e-10,'Released movement stops immediately');
   const a = quiet(1), b = quiet(1);
   for (let i = 0; i < 30; i++) { E.step(a, 1/60, {x:1,y:0}); E.step(b, 1/60, {x:1,y:1}); }
   close(radius(a.player), radius(b.player), 1e-8, 'Diagonal speed is normalized');
@@ -91,8 +96,34 @@ assert.throws(() => E.create(NaN)); checks++;
   ok(s.elapsed-warned.releaseAt>=-1e-8,'Rush never releases before warning duration');
 }
 
-eq(E.stageFor(0).index,0,'Opening difficulty');eq(E.stageFor(10).index,1,'10s stage');eq(E.stageFor(25).index,2,'25s stage');eq(E.stageFor(45).index,3,'45s stage');eq(E.stageFor(75).index,4,'75s stage');
+eq(E.stageFor(0).index,0,'Opening difficulty');eq(E.stageFor(10).index,1,'10s stage');eq(E.stageFor(20).index,2,'20s stage');eq(E.stageFor(35).index,3,'35s stage');eq(E.stageFor(50).index,4,'50s stage');eq(E.stageFor(75).index,5,'75s stage');eq(E.stageFor(105).index,6,'105s stage');
 eq(E.getRank(30).name,'뭉림고수','Named rank at30seconds');
+
+// Difficulty changes actual speed, cadence and concurrent approach directions.
+{
+  let previous=E.difficultyFor(0);
+  for(let second=1;second<=240;second++){
+    const current=E.difficultyFor(second);
+    ok(current.speed>=previous.speed,'Enemy speed never falls with elapsed survival');
+    ok(current.interval<=previous.interval+1e-10,'Gaps between rushes never grow');
+    ok(current.count>=previous.count,'Later waves never shed their approach count');
+    ok(current.lead>=.4-1e-10,'Every wave keeps at least400ms readable warning');
+    previous=current;
+  }
+  ok(E.difficultyFor(20).speed>E.difficultyFor(0).speed*1.45,'20s rushes are materially faster');
+  ok(E.difficultyFor(50).count/E.difficultyFor(50).interval>E.difficultyFor(0).count/E.difficultyFor(0).interval*9,'50s has substantially denser crossfire');
+  ok(E.difficultyFor(150).speed>E.difficultyFor(105).speed,'Rush speed keeps climbing beyond105s');
+  for(const seconds of [0,10,20,35,50,75,105,180]){
+    const s=E.create(23);s.elapsed=seconds;s.nextWaveAt=seconds;s.player.vx=E.PLAYER_SPEED;
+    E.step(s,1/240,{x:1});
+    eq(s.warnings.length,E.difficultyFor(seconds).count,'Higher-stage wave actually creates the advertised simultaneous approaches');
+    const planned=copy(s.warnings);
+    ok(s.warnings.every(w=>w.total>=.4-1e-10),'Late waves retain warning window');
+    if(seconds>=10)ok(s.warnings.some(w=>w.aimX>500),'Later flanks lead current velocity rather than all aiming behind a circling player');
+    for(let n=0;n<12;n++)E.step(s,1/240,{x:-1});
+    for(const w of planned){const current=s.warnings.find(c=>c.id===w.id);if(current){close(current.aimX,w.aimX,1e-10,'Predictive aim stays locked after warning');close(current.vx,w.vx,1e-10,'Predictive rush cannot turn toward a new position');}}
+  }
+}
 
 // Real runs with ordinary player input. This is a bot observation, not human balancing.
 let stationaryCases=0,botWins=0,longest=0,maxEnemies=0,maxWarnings=0,minWarning=Infinity;
@@ -123,12 +154,12 @@ for(let seed=0;seed<12;seed++){
   while(s.status==='playing'&&s.elapsed<90){
     const input=chooseInput(s);const ev=E.step(s,.1,input);
     maxEnemies=Math.max(maxEnemies,s.enemies.length);maxWarnings=Math.max(maxWarnings,s.warnings.length);
-    for(const w of s.warnings){minWarning=Math.min(minWarning,w.total);ok(w.total>=.5,'All late-stage warnings remain readable');ok(Math.hypot(w.aimX-500,w.aimY-500)<=420+1e-7,'Every rush aims inside court');}
+    for(const w of s.warnings){minWarning=Math.min(minWarning,w.total);ok(w.total>=.4-1e-10,'All late-stage warnings remain readable');ok(Math.hypot(w.aimX-500,w.aimY-500)<=420+1e-7,'Every rush aims inside court');}
     ok(s.enemies.length<=80&&s.warnings.length<=24,'Object counts remain bounded');
     ok(radius(s.player)<=420+1e-7,'Bot stays within playable boundary');
     if(ev.some(e=>e.type==='hit'))eq(s.status,'over','Bot first contact immediately ends run');
   }
   longest=Math.max(longest,s.elapsed);if(s.elapsed>=90)botWins++;
 }
-ok(longest>=45,'Ordinary movement can reach later wave families');ok(minWarning>=.5,'No late difficulty removes telegraph');
+ok(longest>=20,'Position-aware movement can reach the harder crossfire families');ok(minWarning>=.4-1e-10,'No late difficulty removes telegraph');
 console.log(JSON.stringify({result:'passed',checks,stationaryCases,botCases:12,bot90SecondRuns:botWins,longestBotSeconds:Number(longest.toFixed(2)),maxEnemies,maxWarnings,minWarning,note:'Bot knows actor positions; this does not establish human difficulty.'},null,2));

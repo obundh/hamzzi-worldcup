@@ -1,13 +1,13 @@
 (function (root) {
   'use strict';
 
-  const VERSION = 1;
+  const VERSION = 2;
   const WORLD_SIZE = 1000;
   const CENTER = Object.freeze({ x: 500, y: 500 });
   const ARENA_RADIUS = 430;
-  const PLAYER_SPEED = 310;
+  const PLAYER_SPEED = 360;
   const PLAYER_RADIUS = 10;
-  const STEP = 1 / 120;
+  const STEP = 1 / 240;
   const MAX_FRAME = .1;
   const ENEMY_CAP = 80;
   const WARNING_CAP = 24;
@@ -22,9 +22,20 @@
   const STAGES = [
     { at: 0, index: 0, name: '숲의 첫인사' },
     { at: 10, index: 1, name: '햄찌 러시' },
-    { at: 25, index: 2, name: '양쪽을 조심해' },
-    { at: 45, index: 3, name: '몰려오는 햄찌들' },
-    { at: 75, index: 4, name: '뭉림의 경지' }
+    { at: 20, index: 2, name: '빈틈을 찾아라' },
+    { at: 35, index: 3, name: '몰려오는 햄찌들' },
+    { at: 50, index: 4, name: '뭉림의 경지' },
+    { at: 75, index: 5, name: '멈추면 끝' },
+    { at: 105, index: 6, name: '끝없는 햄찌 폭주' }
+  ];
+  const DIFFICULTY = [
+    { at: 0, speed: 330, interval: .94, lead: .72, count: 1, prediction: 0 },
+    { at: 10, speed: 400, interval: .70, lead: .65, count: 2, prediction: .34 },
+    { at: 20, speed: 490, interval: .53, lead: .58, count: 3, prediction: .40 },
+    { at: 35, speed: 590, interval: .40, lead: .52, count: 3, prediction: .44 },
+    { at: 50, speed: 680, interval: .32, lead: .47, count: 4, prediction: .48 },
+    { at: 75, speed: 790, interval: .24, lead: .43, count: 5, prediction: .50 },
+    { at: 105, speed: 900, interval: .19, lead: .40, count: 6, prediction: .52 }
   ];
   const RANKS = [
     { at: 0, name: '첫걸음 뭉찌', description: '달려오는 쪽을 보고, 살짝 비켜 보세요.' },
@@ -72,12 +83,16 @@
     return state;
   }
 
-  function waveSettings(time) {
-    const stage = stageFor(time).index;
-    const interval = [1.3, 1.1, .98, .86, .74][stage];
-    const lead = [.8, .75, .68, .61, .56][stage];
-    const speed = Math.min(455, 242 + time * 2.25);
-    return { stage, interval, lead, speed };
+  function difficultyFor(seconds) {
+    const time = Math.max(0, finite(seconds, 0)), stage = stageFor(time).index;
+    const current = DIFFICULTY[stage], next = DIFFICULTY[stage + 1];
+    if (!next) return { stage, count: current.count, prediction: current.prediction,
+      speed: Math.min(1080, current.speed + (time - current.at) * 2),
+      interval: Math.max(.17, current.interval - (time - current.at) * .0004), lead: .40 };
+    const f = clamp((time - current.at) / (next.at - current.at), 0, 1);
+    const mix = key => current[key] + (next[key] - current[key]) * f;
+    return { stage, count: current.count, speed: mix('speed'), interval: mix('interval'),
+      lead: mix('lead'), prediction: mix('prediction') };
   }
 
   function addWarning(state, angle, aimX, aimY, kindIndex, cfg, events) {
@@ -103,23 +118,29 @@
   }
 
   function wave(state, events) {
-    const cfg = waveSettings(state.elapsed), n = state.waveIndex++;
+    const cfg = difficultyFor(state.elapsed), n = state.waveIndex++;
     // A golden-angle progression avoids camping a permanently quiet side.
     const a = state.baseAngle + n * 2.399963229728653 + (random(state) - .5) * .42;
     const p = state.player, type = state.kindOffset + n;
-    addWarning(state, a, p.x, p.y, type, cfg, events);
-    if ((cfg.stage === 1 && n % 4 === 3) || cfg.stage >= 2) {
-      if (cfg.stage >= 3 && n % 3 === 1) {
-        // Parallel lanes have generous gaps; the whole fan is telegraphed together.
-        const px = -Math.sin(a) * 105, py = Math.cos(a) * 105;
-        addWarning(state, a - .24, p.x + px, p.y + py, type + 1, cfg, events);
-        addWarning(state, a + .24, p.x - px, p.y - py, type + 2, cfg, events);
-      } else {
-        const opposite = a + Math.PI * (.78 + random(state) * .44);
-        addWarning(state, opposite, p.x, p.y, type + 1, cfg, events);
-        if (cfg.stage === 4 && n % 4 === 0) addWarning(state, a + Math.PI / 2, p.x, p.y, type + 2, cfg, events);
+    const predicted = { x: p.x + p.vx * cfg.prediction, y: p.y + p.vy * cfg.prediction };
+    const plans = [{ angle: a, x: p.x, y: p.y }];
+    if (cfg.count === 2) {
+      plans.push({ angle: a + Math.PI * (.78 + random(state) * .44), x: predicted.x, y: predicted.y });
+    } else if (cfg.count >= 3 && n % 3 === 1) {
+      // A readable three-lane fan cuts across the path, with room between hit circles.
+      // Additional flanks target a locked future point so circling forever is unsafe.
+      const gap = Math.max(78, 102 - cfg.stage * 4), px = -Math.sin(a) * gap, py = Math.cos(a) * gap;
+      plans.push({ angle: a - .22, x: p.x + px, y: p.y + py });
+      plans.push({ angle: a + .22, x: p.x - px, y: p.y - py });
+      for (let i = 3; i < cfg.count; i++) plans.push({ angle: a + Math.PI * (1 + (i - 3) * .42), x: predicted.x, y: predicted.y });
+    } else if (cfg.count >= 3) {
+      // Crossfire sources rotate as a group; their aim never tracks after the warning.
+      for (let i = 1; i < cfg.count; i++) {
+        const target = i % 2 ? predicted : p;
+        plans.push({ angle: a + i * Math.PI * 2 / cfg.count + (random(state) - .5) * .16, x: target.x, y: target.y });
       }
     }
+    plans.forEach((plan, i) => addWarning(state, plan.angle, plan.x, plan.y, type + i, cfg, events));
     state.nextWaveAt += cfg.interval;
   }
 
@@ -217,7 +238,7 @@
     return events;
   }
 
-  const API = { VERSION, WORLD_SIZE, CENTER, ARENA_RADIUS, PLAYER_SPEED, PLAYER_RADIUS, ENEMIES, RANKS, create, step, getRank, stageFor };
+  const API = { VERSION, WORLD_SIZE, CENTER, ARENA_RADIUS, PLAYER_SPEED, PLAYER_RADIUS, ENEMIES, RANKS, create, step, getRank, stageFor, difficultyFor };
   root.MoonglimEngine = API;
   if (typeof module !== 'undefined' && module.exports) module.exports = API;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
