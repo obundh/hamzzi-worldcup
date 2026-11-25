@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111113">
+  <meta name="description" content="노란 공이 고르는 랜덤 이상형. 결과를 이미지 생성용 프롬프트로 복사하세요.">
+  <title>랜덤 이상형</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%23ffdb00'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css?v=1">
+  <script src="model.js?v=1" defer></script>
+  <script src="app.js?v=1" defer></script>
+</head>
+<body>
+  <header class="page-header">
+    <a class="home" href="../" aria-label="햄찌 월드컵으로">햄찌 놀이터 <span aria-hidden="true">↗</span></a>
+    <span class="header-note">RANDOM PARTNER</span>
+  </header>
+  <main class="app">
+    <section class="filter" aria-label="랜덤 이상형 추첨 화면">
+      <div class="stage" id="stage" role="img" aria-label="흰 선을 따라 노란 공이 내려오며 여섯 가지 조건을 고릅니다.">
+        <div class="hamster-background" id="hamster-background" aria-hidden="true"></div>
+        <video id="camera" autoplay muted playsinline aria-hidden="true"></video>
+        <div class="shade" aria-hidden="true"></div>
+        <div class="track" id="track" aria-hidden="true">
+          <div class="rail" id="rail"></div>
+          <div class="traveler" id="traveler"></div>
+        </div>
+        <p class="stage-hint" id="stage-hint">시작하면 노란 공이 내려와요</p>
+        <span class="hamster-name" id="hamster-name" aria-hidden="true">이뭉</span>
+        <span class="stage-state" id="stage-state" hidden></span>
+      </div>
+      <div class="camera-controls">
+        <button class="text-button" id="camera-toggle" type="button" aria-pressed="false">카메라 켜기</button>
+        <span id="camera-note">다시 뽑으면 햄찌도 바뀌어요</span>
+      </div>
+    </section>
+
+    <section class="controls" aria-labelledby="title">
+      <div class="intro">
+        <h1 id="title">랜덤 이상형</h1>
+        <p>노란 공이 내려오면,<br>내 이상형의 조건이 하나씩 정해져요.</p>
+      </div>
+      <div class="actions">
+        <button class="primary" id="start" type="button">시작하기 <span aria-hidden="true">↓</span></button>
+        <button class="secondary" id="pause" type="button" hidden>일시정지</button>
+      </div>
+      <p class="run-status" id="run-status" role="status" aria-live="polite">성별부터 국적까지, 6가지 조건을 뽑아요.</p>
+      <p class="notice" id="storage-note" hidden></p>
+
+      <section class="result" id="result" aria-labelledby="result-title" hidden>
+        <h2 id="result-title" tabindex="-1">이 조합, 어떤 모습일까?</h2>
+        <dl class="summary" id="summary"></dl>
+        <label for="prompt">이미지 생성용 프롬프트</label>
+        <p class="prompt-help">복사해서 GPT·Gemini 등에 붙여넣으면 돼요.</p>
+        <textarea id="prompt" readonly rows="7" spellcheck="false"></textarea>
+        <button class="primary copy-button" id="copy" type="button">프롬프트 복사 <span aria-hidden="true">↗</span></button>
+        <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
+        <div class="ai-links">
+          <a href="https://chatgpt.com/" target="_blank" rel="noopener noreferrer">GPT 열기 ↗</a>
+          <a href="https://gemini.google.com/app" target="_blank" rel="noopener noreferrer">Gemini 열기 ↗</a>
+        </div>
+      </section>
+      <details class="about">
+        <summary>사용 안내</summary>
+        <p>시작하면 자동으로 결과가 정해져요. 마음에 안 들면 처음부터 다시 뽑아보세요. 화면을 벗어나면 추첨이 잠시 멈춰요.</p>
+        <p>카메라는 켜기를 누를 때만 사용하며, 영상과 결과를 서버로 보내지 않아요. 뽑은 결과는 이 브라우저에 저장돼요.</p>
+        <p>원본 영상에서 확인한 6개 항목과 화면 흐름을 재현했어요. 원본의 전체 값 목록·확률은 공개되지 않아 값 범위와 확률은 별도로 구성했어요.</p>
+        <a href="https://shorti.ai/en/v/instagram_DfoY6hjviiO" target="_blank" rel="noopener noreferrer">참고한 필터 영상 ↗</a>
+      </details>
+    </section>
+  </main>
+  <noscript><p class="noscript">추첨하려면 브라우저에서 JavaScript를 켜주세요.</p></noscript>
+</body>
+</html>

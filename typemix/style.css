@@ -1,0 +1,81 @@
+:root { color-scheme: dark; --yellow:#ffdb00; --ink:#f6f6f5; --muted:#a3a3a9; }
+* { box-sizing:border-box; }
+[hidden] { display:none !important; }
+body { margin:0; background:#111113; color:var(--ink); font-family:Arial,"Apple SD Gothic Neo","Malgun Gothic",sans-serif; font-size:15px; line-height:1.55; }
+button,textarea { font:inherit; }
+button,a,summary { -webkit-tap-highlight-color:transparent; }
+button { cursor:pointer; }
+a { color:inherit; text-underline-offset:4px; }
+button:focus-visible,a:focus-visible,summary:focus-visible,textarea:focus-visible { outline:3px solid var(--yellow); outline-offset:5px; }
+.page-header { max-width:1056px; padding:28px 32px 0; margin:auto; display:flex; justify-content:space-between; align-items:center; gap:20px; }
+.home { text-decoration:none; font-size:14px; color:#dedee1; font-weight:700; }
+.home span { margin-left:5px; color:var(--yellow); }
+.header-note { color:#727278; font-size:10px; letter-spacing:.16em; }
+.app { max-width:940px; display:grid; grid-template-columns:360px minmax(0,1fr); align-items:start; gap:76px; margin:38px auto 64px; padding:0 32px; }
+.filter { min-width:0; }
+.stage { width:100%; aspect-ratio:9/16; position:relative; overflow:hidden; background:#53584e; isolation:isolate; border:1px solid #39393e; container-type:inline-size; }
+.hamster-background { position:absolute; width:128%; aspect-ratio:1; left:-3%; top:24%; background:url('../halloween/assets/npc-atlas.png') 66.6667% 100% / 400% 200% no-repeat; }
+.stage.has-camera .hamster-background,.stage.has-camera .hamster-name { visibility:hidden; }
+.hamster-name { position:absolute; bottom:14px; right:15px; font-size:11px; color:white; text-shadow:0 1px 3px #000; }
+video { width:100%; height:100%; position:absolute; inset:0; object-fit:cover; transform:scaleX(-1); opacity:0; }
+.stage.has-camera video { opacity:1; }
+.shade { position:absolute; inset:0; background:linear-gradient(90deg,rgba(0,0,0,.17),transparent 65%),linear-gradient(0deg,rgba(0,0,0,.28),transparent 35%); }
+.track { position:absolute; inset:0; --rail-x:32%; --diameter:10%; }
+.rail { position:absolute; left:var(--rail-x); width:2px; background:#fff; transform:translateX(-50%); }
+.node { position:absolute; left:var(--rail-x); width:var(--diameter); aspect-ratio:1; border:3px solid white; border-radius:50%; background:#929292; transform:translate(-50%,-50%); }
+.node.complete { background:var(--yellow); }
+.field-label,.field-value { position:absolute; top:50%; transform:translateY(-50%); color:white; font-size:4.1cqw; font-weight:800; line-height:1.1; white-space:nowrap; text-shadow:0 1px 3px #000,0 0 5px #000a; }
+.field-label { right:calc(100% + 8px); }
+.field-label { font-size:3.9cqw; }
+.field-value { left:calc(100% + 10px); max-width:215px; white-space:normal; width:max-content; }
+.traveler { position:absolute; left:var(--rail-x); width:var(--diameter); aspect-ratio:1; border-radius:50%; background:var(--yellow); transform:translate(-50%,-50%); z-index:2; }
+.stage-hint { position:absolute; top:19px; left:12px; right:12px; text-align:center; color:#efeff2; font-size:11px; margin:0; text-shadow:0 1px 3px #000; }
+.stage-state { position:absolute; right:14px; top:14px; padding:4px 9px; font-size:11px; background:#111b; color:#fff; border-radius:3px; }
+.camera-controls { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-top:13px; color:var(--muted); font-size:10px; }
+.text-button { color:#e0e0e3; border:0; padding:6px 0; background:none; font-size:12px; text-decoration:underline; text-underline-offset:4px; }
+.controls { padding-top:22px; min-width:0; }
+h1 { font-size:32px; letter-spacing:-1.5px; line-height:1.2; margin:0 0 18px; font-weight:800; }
+.intro p { font-size:16px; line-height:1.75; color:#b8b8bf; margin:0 0 32px; }
+.actions { display:flex; gap:8px; }
+.primary,.secondary { min-height:50px; border:0; border-radius:4px; padding:12px 18px; font-weight:700; }
+.primary { background:var(--yellow); color:#181800; display:flex; align-items:center; justify-content:space-between; gap:24px; flex:1; }
+.primary:hover { background:#ffe43e; }
+.secondary { color:#e2e2e6; background:#2b2b30; min-width:95px; }
+.secondary:hover { background:#35353a; }
+button:disabled { cursor:wait; opacity:.55; }
+.run-status { color:var(--muted); font-size:12px; margin:14px 0 0; min-height:20px; }
+.notice { color:#dfca72; font-size:12px; margin:12px 0 0; }
+.result { margin-top:30px; border-top:1px solid #333338; padding-top:26px; }
+h2 { font-size:20px; line-height:1.4; margin:0 0 20px; letter-spacing:-.5px; }
+.summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px 14px; margin:0 0 28px; }
+.summary div { min-width:0; }
+dt { color:var(--muted); font-size:11px; margin-bottom:3px; }
+dd { margin:0; font-size:14px; font-weight:700; overflow-wrap:anywhere; }
+label[for=prompt] { font-size:13px; font-weight:700; }
+.prompt-help { color:var(--muted); font-size:11px; margin:5px 0 12px; }
+textarea { display:block; background:#1c1c20; color:#c4c4cb; border:1px solid #39393f; border-radius:4px; width:100%; padding:13px; resize:vertical; min-height:140px; max-height:440px; font-size:12px; line-height:1.75; }
+.copy-button { width:100%; margin-top:10px; }
+.copy-status { color:#d3d3d9; font-size:12px; margin:10px 0 0; min-height:18px; }
+.ai-links { display:flex; gap:24px; font-size:12px; margin-top:10px; }
+.about { color:#84848d; font-size:11px; margin-top:32px; }
+.about summary { cursor:pointer; width:max-content; padding:6px 0; }
+.about p { margin:12px 0; }
+.noscript { text-align:center; padding:30px; }
+@media(max-width:767px) {
+  .page-header { padding:20px 20px 0; }
+  .app { display:flex; flex-direction:column; gap:0; margin:24px auto 40px; padding:0 20px; max-width:430px; }
+  .filter { width:100%; }
+  .stage { max-height:65svh; width:auto; aspect-ratio:9/16; margin:auto; }
+  .field-label { right:calc(100% + 6px); }
+  .field-value { left:calc(100% + 8px); max-width:170px; }
+  .camera-controls { padding-top:7px; }
+  .controls { width:100%; padding-top:20px; }
+  h1 { font-size:24px; letter-spacing:-.8px; margin-bottom:7px; }
+  .intro p { font-size:12px; margin:0 0 16px; line-height:1.6; }
+  .intro br { display:none; }
+  .primary,.secondary { min-height:48px; font-size:14px; }
+  .run-status { margin-top:10px; }
+  .result { margin-top:24px; }
+  .about { margin-top:24px; }
+}
+@media(prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; } }
