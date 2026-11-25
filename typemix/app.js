@@ -4,17 +4,26 @@
   const $ = id => document.getElementById(id);
   if (!M) { $('run-status').textContent = '파일을 불러오지 못했어요. 새로고침해주세요.'; $('start').disabled = true; return; }
   const KEY = 'hamzzi-typemix-v1';
-  const STEP = 2300;
+  // Measured from the reference's unzoomed 720 x 1280 frames: ball y540,
+  // 350px between nodes, rail moving upward about90px/s after a short lead-in.
+  const ANCHOR = 540 / 1280 * 100;
+  const PITCH = 350 / 1280 * 100;
+  const STEP = 350 / 90 * 1000;
+  const FIRST_REVEAL = 1000;
   const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const nodes = M.FIELDS.map(field => {
+  const nodes = M.FIELDS.map((field, index) => {
     const el = document.createElement('div');
     el.className = 'node';
     const label = document.createElement('span');
     label.className = 'field-label'; label.textContent = field.label;
     const value = document.createElement('span'); value.className = 'field-value';
-    el.append(label, value); $('track').append(el);
+    el.style.top = `${ANCHOR + index * PITCH}%`;
+    el.append(label, value); $('route').append(el);
     return { el, value };
   });
+  $('rail').style.top = `${ANCHOR}%`;
+  $('rail').style.height = `${(M.FIELDS.length - 1) * PITCH}%`;
+  $('traveler').style.top = `${ANCHOR}%`;
   let profile = {}, count = 0, mode = 'idle', elapsed = 0, lastTime = null, raf = 0;
   let stream = null, cameraPending = false, cameraEpoch = 0;
   const hamsters = [
@@ -33,25 +42,22 @@
   }
   function renderTrack() {
     const done = mode === 'complete';
-    const progress = Math.min(elapsed / STEP, 1);
-    const active = Math.min(count, M.FIELDS.length - 1);
-    let scroll = Math.max(0, active - (count ? 1 - progress : 1));
-    if (reduceMotion) scroll = active;
-    const first = done ? 15 : 42 - scroll * 27.4;
-    const pitch = done ? 13.5 : 27.4;
-    nodes.forEach((node, i) => {
-      node.el.style.top = `${first + i * pitch}%`;
-      node.el.classList.toggle('complete', i < count);
-      node.value.textContent = i < count ? M.display(M.FIELDS[i].key, profile[M.FIELDS[i].key]) : '';
-    });
-    $('rail').style.top = `${first}%`;
-    $('rail').style.height = `${(M.FIELDS.length - 1) * pitch}%`;
-    const destination = first + active * pitch;
-    const from = count ? destination - pitch : 8;
-    $('traveler').style.top = `${done ? first + 5 * pitch : reduceMotion ? destination : from + (destination - from) * progress}%`;
+    const progress = Math.max(0, Math.min(elapsed / STEP, 1));
+    const completedIndex = Math.max(0, count - 1);
+    const scroll = completedIndex + (count && !done && !reduceMotion ? progress : 0);
+    // Keep the ball fixed while the entire rail passes underneath it. At the end
+    // freeze on the last node instead of abruptly squeezing six nodes into view.
+    $('route').style.transform = `translateY(${-scroll * PITCH}%)`;
+    const pulse = !reduceMotion && count && !done ? Math.sin(Math.PI * Math.min(elapsed / 300, 1)) * .17 : 0;
+    $('traveler').style.transform = `translate(-50%,-50%) scale(${1 + pulse})`;
+    $('traveler').style.opacity = count || reduceMotion ? 1 : Math.max(0, (elapsed - 300) / 700);
     $('traveler').hidden = mode === 'idle' || done;
   }
   function render() {
+    nodes.forEach((node, i) => {
+      node.el.classList.toggle('complete', i < count);
+      node.value.textContent = i < count ? M.display(M.FIELDS[i].key, profile[M.FIELDS[i].key]) : '';
+    });
     $('stage-hint').hidden = mode !== 'idle' || !!stream;
     $('stage-state').hidden = mode !== 'paused';
     $('stage-state').textContent = '일시정지';
@@ -82,10 +88,11 @@
     if (mode !== 'running') return;
     if (lastTime !== null) elapsed += Math.min(100,Math.max(0,time-lastTime));
     lastTime = time;
-    if (elapsed >= STEP) {
+    const duration = count === 0 ? FIRST_REVEAL : STEP;
+    if (elapsed >= duration) {
       const field = M.FIELDS[count];
       profile[field.key] = M.draw(field.key);
-      count++; elapsed = 0; save();
+      count++; elapsed -= duration; save();
       if (count === M.FIELDS.length) {
         mode = 'complete'; stopLoop(); showResult(); render(); return;
       }

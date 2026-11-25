@@ -46,7 +46,11 @@ keep job as imaginary setting, no silent correction. Do not promise impossible f
 
 ## UI
 Portrait9:16 stage. Start/reset, optional camera, pause/resume.
-Six automatic reveal steps ~2.3s each with moving yellow dot. Restart cancels prior loop.
+Reference-measured motion: ball fixed at42.1875%stage height, initial1s hold, nodes
+27.34375%height apart, continuous linear track movement90px/s normalized to1280px.
+First reveal~1s; later reveals350/90=3.889s apart. Small ball pulse and result fade-in.
+Final track freezes at last node without shrinking/re-spacing the whole route.
+Restart cancels prior loop.
 Hidden tab pauses. Reduced-motion keeps timing without vertical travel or flashing.
 Final result: six-value summary and one readonly prompt with copy; simple GPT/Gemini links.
 No preference/style/download options.
